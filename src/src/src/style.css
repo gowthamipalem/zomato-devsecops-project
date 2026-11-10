@@ -1,0 +1,180 @@
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: #f8f8f8;
+  color: #333;
+}
+
+.navbar {
+  background: white;
+  padding: 20px 7%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 8px #ddd;
+}
+
+.logo {
+  color: #e23744;
+  font-size: 34px;
+  font-weight: bold;
+}
+
+.logo span {
+  color: #333;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.cart-button {
+  background: #e23744;
+  color: white;
+  border: none;
+  padding: 11px 18px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.hero {
+  background: linear-gradient(120deg, #e23744, #ff826c);
+  color: white;
+  text-align: center;
+  padding: 75px 20px;
+}
+
+.hero h2 {
+  font-size: 36px;
+  margin-bottom: 15px;
+}
+
+.hero p {
+  margin-bottom: 25px;
+}
+
+.hero input {
+  width: min(90%, 550px);
+  padding: 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+.container {
+  padding: 45px 7%;
+}
+
+.container > h2 {
+  font-size: 28px;
+}
+
+.subtitle {
+  color: #777;
+  margin: 10px 0 25px;
+}
+
+.restaurant-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 22px;
+}
+
+.restaurant-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 3px 12px #ddd;
+}
+
+.food-image {
+  height: 150px;
+  display: grid;
+  place-items: center;
+  background: #fff0e8;
+  font-size: 75px;
+}
+
+.restaurant-info {
+  padding: 18px;
+}
+
+.restaurant-info h3 {
+  margin-bottom: 8px;
+}
+
+.restaurant-info p {
+  color: #777;
+  margin-bottom: 12px;
+}
+
+.details {
+  display: flex;
+  justify-content: space-between;
+  margin: 15px 0;
+  font-size: 14px;
+}
+
+.restaurant-info .price {
+  color: #333;
+  font-weight: bold;
+}
+
+.restaurant-info button {
+  background: #e23744;
+  color: white;
+  border: none;
+  padding: 11px;
+  width: 100%;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.restaurant-info button:hover {
+  background: #bd2635;
+}
+
+.cart-section {
+  background: white;
+  padding: 25px;
+  margin-top: 40px;
+  border-radius: 10px;
+}
+
+.cart-section h2 {
+  margin-bottom: 15px;
+}
+
+.empty {
+  padding: 30px;
+}
+
+footer {
+  background: #252525;
+  color: white;
+  text-align: center;
+  padding: 25px;
+  margin-top: 30px;
+}
+
+@media (max-width: 600px) {
+  .navbar {
+    padding: 15px;
+  }
+
+  .nav-right span {
+    display: none;
+  }
+
+  .hero h2 {
+    font-size: 26px;
+  }
+}
