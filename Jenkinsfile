@@ -35,18 +35,18 @@ pipeline {
         }
 
         stage('Verify Tools') {
-            steps {
-                sh '''
-                    java -version
-                    node --version
-                    npm --version
-                    docker --version
-                    aws --version
-                    kubectl version --client
-                    trivy --version
-                '''
-            }
-        }
+    steps {
+        sh '''
+            java -version
+            node --version
+            npm --version
+            docker --version
+            aws --version
+            kubectl version --client
+            trivy --config "" --version
+        '''
+    }
+}
 
         stage('Verify AWS Identity') {
             steps {
@@ -120,17 +120,17 @@ pipeline {
         }
 
         stage('Trivy Filesystem Scan') {
-            steps {
-                sh '''
-                    trivy fs \
-                    --format table \
-                    --output trivy-fs-report.txt \
-                    .
-                '''
-                archiveArtifacts artifacts: 'trivy-fs-report.txt',
-                    allowEmptyArchive: true
-            }
-        }
+    steps {
+        sh '''
+            trivy --config "" fs \
+            --format table \
+            --output trivy-fs-report.txt \
+            .
+        '''
+        archiveArtifacts artifacts: 'trivy-fs-report.txt',
+            allowEmptyArchive: true
+    }
+}
 
         stage('Docker Build') {
             steps {
@@ -142,18 +142,18 @@ pipeline {
             }
         }
 
-        stage('Trivy Docker Image Scan') {
-            steps {
-                sh '''
-                    trivy image \
-                    --format table \
-                    --output trivy-image-report.txt \
-                    zomato-app:${BUILD_NUMBER}
-                '''
-                archiveArtifacts artifacts: 'trivy-image-report.txt',
-                    allowEmptyArchive: true
-            }
-        }
+       stage('Trivy Docker Image Scan') {
+    steps {
+        sh '''
+            trivy --config "" image \
+            --format table \
+            --output trivy-image-report.txt \
+            zomato-app:${BUILD_NUMBER}
+        '''
+        archiveArtifacts artifacts: 'trivy-image-report.txt',
+            allowEmptyArchive: true
+    }
+}
 
         stage('Push Docker Image to AWS ECR') {
             steps {
