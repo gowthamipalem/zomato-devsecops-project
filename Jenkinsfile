@@ -1,19 +1,21 @@
 
 pipeline {
-
     agent any
 
     tools {
-        jdk 'jdk-21'
-        nodejs 'node23'
+        jdk 'JDK-21'
+        nodejs 'NodeJS-22'
     }
 
     environment {
-        SCANNER_HOME = tool 'sonar-scanner'
+        SCANNER_HOME = tool 'SonarScanner'
 
         AWS_REGION = 'eu-north-1'
         EKS_CLUSTER_NAME = 'zomato-eks-cluster'
         ECR_REPOSITORY = 'zomato-app'
+
+        NODEGROUP_NAME = 'zomato-worker-nodes'
+        NODE_INSTANCE_TYPE = 't3.medium'
     }
 
     stages {
@@ -66,7 +68,7 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     sh '''
-                        $SCANNER_HOME/bin/sonar-scanner \
+                        "$SCANNER_HOME/bin/sonar-scanner" \
                         -Dsonar.projectName=Zomato \
                         -Dsonar.projectKey=Zomato \
                         -Dsonar.sources=src \
@@ -146,31 +148,80 @@ pipeline {
 
         stage('Push Docker Image to AWS ECR') {
             steps {
-                script {
-                    sh '''
-                        ACCOUNT_ID=$(aws sts get-caller-identity \
-                        --query Account --output text)
+                sh '''
+                    ACCOUNT_ID=$(aws sts get-caller-identity \
+                    --query Account --output text)
 
-                        ECR_URI=${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}
+                    ECR_URI=${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}
 
-                        aws ecr describe-repositories \
-                        --repository-names ${ECR_REPOSITORY} \
-                        --region ${AWS_REGION} || \
-                        aws ecr create-repository \
-                        --repository-name ${ECR_REPOSITORY} \
-                        --region ${AWS_REGION}
+                    aws ecr describe-repositories \
+                    --repository-names ${ECR_REPOSITORY} \
+                    --region ${AWS_REGION} || \
+                    aws ecr create-repository \
+                    --repository-name ${ECR_REPOSITORY} \
+                    --region ${AWS_REGION}
 
-                        aws ecr get-login-password \
-                        --region ${AWS_REGION} | \
-                        docker login \
-                        --username AWS \
-                        --password-stdin ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+                    aws ecr get-login-password \
+                    --region ${AWS_REGION} | \
+                    docker login \
+                    --username AWS \
+                    --password-stdin ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
 
-                        docker tag zomato-app:${BUILD_NUMBER} ${ECR_URI}:${BUILD_NUMBER}
+                    docker tag zomato-app:${BUILD_NUMBER} ${ECR_URI}:${BUILD_NUMBER}
 
-                        docker push ${ECR_URI}:${BUILD_NUMBER}
-                    '''
-                }
+                    docker push ${ECR_URI}:${BUILD_NUMBER}
+                '''
+            }
+        }
+
+        stage('Install eksctl') {
+            steps {
+                sh '''
+                    mkdir -p "$WORKSPACE/.bin"
+
+                    curl -fsSL \
+                    https://github.com/eksctl-io/eksctl/releases/download/0.231.0/eksctl_Linux_amd64.tar.gz \
+                    -o /tmp/eksctl.tar.gz
+
+                    tar -xzf /tmp/eksctl.tar.gz -C "$WORKSPACE/.bin"
+
+                    chmod +x "$WORKSPACE/.bin/eksctl"
+
+                    "$WORKSPACE/.bin/eksctl" version
+
+                    rm -f /tmp/eksctl.tar.gz
+                '''
+            }
+        }
+
+        stage('Create AWS EKS Cluster') {
+            steps {
+                sh '''
+                    echo "Checking whether EKS cluster already exists..."
+
+                    if aws eks describe-cluster \
+                       --name ${EKS_CLUSTER_NAME} \
+                       --region ${AWS_REGION} >/dev/null 2>&1
+                    then
+                        echo "EKS cluster already exists. Skipping creation."
+                    else
+                        echo "Creating EKS cluster..."
+
+                        "$WORKSPACE/.bin/eksctl" create cluster \
+                        --name ${EKS_CLUSTER_NAME} \
+                        --region ${AWS_REGION} \
+                        --managed \
+                        --nodegroup-name ${NODEGROUP_NAME} \
+                        --node-type ${NODE_INSTANCE_TYPE} \
+                        --nodes 1 \
+                        --nodes-min 1 \
+                        --nodes-max 1 \
+                        --node-volume-size 20 \
+                        --timeout 40m
+                    fi
+
+                    echo "EKS cluster creation/check completed."
+                '''
             }
         }
 
