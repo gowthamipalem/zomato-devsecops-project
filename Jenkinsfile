@@ -190,7 +190,7 @@ pipeline {
                     mkdir -p "$WORKSPACE/.bin"
 
                     curl -fsSL \
-                    https://github.com/eksctl-io/eksctl/releases/download/0.231.0/eksctl_Linux_amd64.tar.gz \
+                   https://github.com/eksctl-io/eksctl/releases/download/v0.231.0/eksctl_Linux_amd64.tar.gz \
                     -o /tmp/eksctl.tar.gz
 
                     tar -xzf /tmp/eksctl.tar.gz -C "$WORKSPACE/.bin"
