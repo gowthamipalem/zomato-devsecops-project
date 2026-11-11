@@ -48,6 +48,15 @@ pipeline {
             }
         }
 
+        stage('Verify AWS Identity') {
+            steps {
+                sh '''
+                    aws sts get-caller-identity
+                    echo "AWS Region: ${AWS_REGION}"
+                '''
+            }
+        }
+
         stage('Install Dependencies') {
             steps {
                 sh 'npm ci'
@@ -100,8 +109,8 @@ pipeline {
         stage('OWASP Dependency Check') {
             steps {
                 dependencyCheck(
-                    additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit',
-                    odcInstallation: 'DP-Check'
+                    odcInstallation: 'DP-Check',
+                    additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit'
                 )
 
                 dependencyCheckPublisher(
@@ -156,7 +165,7 @@ pipeline {
 
                     aws ecr describe-repositories \
                     --repository-names ${ECR_REPOSITORY} \
-                    --region ${AWS_REGION} || \
+                    --region ${AWS_REGION} >/dev/null 2>&1 || \
                     aws ecr create-repository \
                     --repository-name ${ECR_REPOSITORY} \
                     --region ${AWS_REGION}
@@ -167,7 +176,8 @@ pipeline {
                     --username AWS \
                     --password-stdin ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
 
-                    docker tag zomato-app:${BUILD_NUMBER} ${ECR_URI}:${BUILD_NUMBER}
+                    docker tag zomato-app:${BUILD_NUMBER} \
+                    ${ECR_URI}:${BUILD_NUMBER}
 
                     docker push ${ECR_URI}:${BUILD_NUMBER}
                 '''
@@ -197,7 +207,7 @@ pipeline {
         stage('Create AWS EKS Cluster') {
             steps {
                 sh '''
-                    echo "Checking whether EKS cluster already exists..."
+                    echo "Checking EKS cluster..."
 
                     if aws eks describe-cluster \
                        --name ${EKS_CLUSTER_NAME} \
@@ -205,7 +215,12 @@ pipeline {
                     then
                         echo "EKS cluster already exists. Skipping creation."
                     else
-                        echo "Creating EKS cluster..."
+                        echo "Checking EKS API permissions..."
+
+                        aws eks list-clusters \
+                        --region ${AWS_REGION} >/dev/null
+
+                        echo "Creating EKS cluster and managed node group..."
 
                         "$WORKSPACE/.bin/eksctl" create cluster \
                         --name ${EKS_CLUSTER_NAME} \
@@ -220,7 +235,7 @@ pipeline {
                         --timeout 40m
                     fi
 
-                    echo "EKS cluster creation/check completed."
+                    echo "EKS cluster stage completed."
                 '''
             }
         }
@@ -265,6 +280,7 @@ spec:
       containers:
       - name: zomato-container
         image: ${ECR_URI}:${BUILD_NUMBER}
+        imagePullPolicy: Always
         ports:
         - containerPort: 80
 EOF
